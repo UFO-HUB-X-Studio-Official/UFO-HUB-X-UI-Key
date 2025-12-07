@@ -1,4 +1,4 @@
---===== UFO HUB X • Key UI + Language Panel A V2 (Full i18n) =====
+--===== UFO HUB X • Key UI + Language Panel A V2 (Full i18n + Width 220 + Lowered) =====
 -- LocalScript (StarterGui / StarterPlayerScripts)
 
 local Players          = game:GetService("Players")
@@ -53,13 +53,13 @@ gui.ZIndexBehavior = Enum.ZIndexBehavior.Global
 gui.Parent = playerGui
 
 ---------------------------------------------------------------------
--- MAIN PANEL (BACKGROUND)  >> ดีไซน์เดิม
+-- MAIN PANEL (BACKGROUND)  >> ดีไซน์เดิมแต่เลื่อนลงนิดหน่อย
 ---------------------------------------------------------------------
 local main = Instance.new("Frame")
 main.Name = "Main"
 main.Parent = gui
 main.AnchorPoint = Vector2.new(0.5, 0.5)
-main.Position = UDim2.new(0.5, 0, 0.5, 0)
+main.Position = UDim2.new(0.5, 0, 0.53, 0)  -- เลื่อนลงจาก 0.5 → 0.53
 main.Size = UDim2.new(0.62, 0, 0.60, 0)
 main.BackgroundColor3 = THEME.DARK_BG
 main.BorderSizePixel = 0
@@ -208,8 +208,8 @@ local buttonRow = Instance.new("Frame")
 buttonRow.Name = "ButtonRow"
 buttonRow.Parent = main
 buttonRow.AnchorPoint = Vector2.new(0.5, 0)
-buttonRow.Position = UDim2.new(0.5, 0, 0, 265)           -- ขยับลงนิด + สูงขึ้น
-buttonRow.Size = UDim2.new(0.8, 0, 0, 60)                -- สูง 60
+buttonRow.Position = UDim2.new(0.5, 0, 0, 265)
+buttonRow.Size = UDim2.new(0.8, 0, 0, 60)
 buttonRow.BackgroundTransparency = 1
 
 local uiList = Instance.new("UIListLayout")
@@ -248,14 +248,6 @@ linkBtn.Text = "Get Key Link"
 linkBtn.TextWrapped = true
 corner(linkBtn, 12)
 stroke(linkBtn, 2.2, THEME.GREEN, 0)
-
-confirmBtn.MouseButton1Click:Connect(function()
-    print("[UFO HUB X] Confirm Key clicked (UI only)")
-end)
-
-linkBtn.MouseButton1Click:Connect(function()
-    print("[UFO HUB X] Get Key Link clicked (UI only)")
-end)
 
 ---------------------------------------------------------------------
 -- LANGUAGE PACK (6 ภาษา)  – เปลี่ยนข้อความ UI หลัก
@@ -311,11 +303,11 @@ local LANG_PACK = {
     },
 }
 
--- ลำดับในลิสต์: EN ก่อน, TH ที่สอง ตามที่ขอ
+-- EN ก่อน, TH ที่สอง
 local LANG_ORDER = { "EN","TH","VN","ID","PH","BR" }
 
 ---------------------------------------------------------------------
--- PANEL I18N สำหรับข้อความในลิสต์ด้านขวา (ชื่อภาษาแต่ละภาษา UI)
+-- PANEL I18N สำหรับข้อความในลิสต์ด้านขวา
 ---------------------------------------------------------------------
 local PANEL_I18N = {
     EN = {
@@ -383,8 +375,8 @@ local PANEL_I18N = {
 ---------------------------------------------------------------------
 -- LANGUAGE PANEL (Model A V2 – นอก UI หลัก)
 ---------------------------------------------------------------------
-local PANEL_WIDTH  = 260
-local PANEL_HEIGHT = 320 -- สูงขึ้น ~50% จากเดิมให้ดูเต็มขึ้น
+local PANEL_WIDTH  = 220           -- ความกว้างใหม่ ให้ไม่เกินเส้นแดง
+local PANEL_HEIGHT = 320
 local langPanelOpen = false
 local langPanel
 local langRows = {}
@@ -394,8 +386,8 @@ langPanel = Instance.new("Frame")
 langPanel.Name = "LanguagePanel"
 langPanel.Parent = gui
 langPanel.AnchorPoint = Vector2.new(0, 0.5)
-langPanel.Position = UDim2.new(0.80, 0, 0.5, 0)
-langPanel.Size     = UDim2.new(0, 0, 0, PANEL_HEIGHT) -- เริ่มปิด (ความกว้าง 0)
+langPanel.Position = UDim2.new(0.80, 0, 0.55, 0)  -- เลื่อนลงจาก 0.5 → 0.55
+langPanel.Size     = UDim2.new(0, 0, 0, PANEL_HEIGHT)
 langPanel.BackgroundColor3 = THEME.BLACK
 langPanel.BackgroundTransparency = 0.05
 langPanel.BorderSizePixel = 0
@@ -537,7 +529,7 @@ local function createLangRow(code, order)
     btn.TextColor3 = THEME.WHITE
     btn.TextXAlignment = Enum.TextXAlignment.Center
     btn.TextYAlignment = Enum.TextYAlignment.Center
-    btn.Text = pack.name           -- จะถูก applyLanguage ทับอีกทีตามภาษา UI
+    btn.Text = pack.name
     btn.LayoutOrder = order or 1
     corner(btn, 10)
 
@@ -673,7 +665,7 @@ end)
 ---------------------------------------------------------------------
 -- INITIAL LANGUAGE (เริ่มต้น English)
 ---------------------------------------------------------------------
-applyLanguage("EN")     -- default: ภาษาอังกฤษ
+applyLanguage("EN")
 updateLangHighlight()
 
-print("[UFO HUB X] Key UI + Language Panel A V2 (i18n) loaded")
+print("[UFO HUB X] Key UI + Language Panel A V2 (i18n, width 220, lowered) loaded")
