@@ -1,4 +1,4 @@
---===== UFO HUB X • Key UI + Language Panel A V2 + Key System (4 Mode + VIP + Save + Toast i18n) =====
+--===== UFO HUB X • Key UI + Language Panel A V2 + Key System (4 Mode + VIP(10) + Save + Toast i18n) =====
 -- LocalScript (StarterGui / StarterPlayerScripts)
 
 local Players          = game:GetService("Players")
@@ -42,7 +42,7 @@ local function trim(s)
 end
 
 ---------------------------------------------------------------------
--- KEY SYSTEM CONFIG (4 ระบบ + VIP)  + SAVE
+-- KEY SYSTEM CONFIG (4 ระบบ + VIP 10 รหัส)  + SAVE
 ---------------------------------------------------------------------
 _G.UFOX_KEY_SYSTEM = _G.UFOX_KEY_SYSTEM or {
     -- ระบบ 1: Luarmor (รองรับอนาคต)
@@ -69,11 +69,40 @@ _G.UFOX_KEY_SYSTEM = _G.UFOX_KEY_SYSTEM or {
         [97777561575736]   = true, -- Kayak racing
     },
 
-    -- ระบบ 4: VIP prefix (สร้างรหัสได้ไม่จำกัด)
-    VIP_PREFIX = "UFO-HUB-X-VIP-",
+    -- ระบบ 4: VIP (จำกัด 10 รหัสถาวร)
+    VIP_CODES = {
+        "UFO-HUB-X-VIP-A1Z9Q7K3",
+        "UFO-HUB-X-VIP-B8X2M4N6",
+        "UFO-HUB-X-VIP-C3L7P9Q1",
+        "UFO-HUB-X-VIP-D6R4T8V2",
+        "UFO-HUB-X-VIP-E9Y1K5J7",
+        "UFO-HUB-X-VIP-F2H8W3Z9",
+        "UFO-HUB-X-VIP-G4P6Q1X8",
+        "UFO-HUB-X-VIP-H7M3N9L2",
+        "UFO-HUB-X-VIP-J5V1C8R4",
+        "UFO-HUB-X-VIP-K9Q2Z7Y6",
+    },
+
+    -- ลิงก์ Key ต่อแมพ (ตอนนี้มี 2 แมพระบบ 2)
+    KEY_LINK = {
+        [82013336390273] = {
+            name = "Axe Simulator!",
+            url  = "https://link-center.net/1458562/DS9lEKrJEO2z",
+        },
+        [117784363858270] = {
+            name = "Throw a basketball!",
+            url  = "https://link-center.net/1458562/1OoW76T3RH2n",
+        },
+    },
 }
 
 local KEY_CONFIG = _G.UFOX_KEY_SYSTEM
+
+-- log VIP codes ให้เจ้าของเห็นใน Output
+warn("[UFO HUB X] VIP Codes (10):")
+for i,code in ipairs(KEY_CONFIG.VIP_CODES) do
+    print(i, code)
+end
 
 -- SAVE CONFIG
 local SAVE_DIR  = "UFO HUB X"
@@ -215,7 +244,7 @@ local MSG_I18N = {
     },
 }
 
-local currentLang = "EN" -- อันนี้จะถูกเปลี่ยนตามแผงภาษา
+local currentLang = "EN" -- จะอัปเดตตาม UI ภาษาด้านขวา
 
 local function makeToastGui(name)
     local pg = lp:WaitForChild("PlayerGui")
@@ -528,7 +557,7 @@ corner(linkBtn, 12)
 stroke(linkBtn, 2.2, THEME.GREEN, 0)
 
 ---------------------------------------------------------------------
--- LANGUAGE PACK (6 ภาษา)  – เปลี่ยนข้อความ UI หลัก
+-- LANGUAGE PACK (6 ภาษา)
 ---------------------------------------------------------------------
 local LANG_PACK = {
     EN = {
@@ -581,11 +610,10 @@ local LANG_PACK = {
     },
 }
 
--- ลำดับในลิสต์: EN ก่อน, TH ที่สอง
 local LANG_ORDER = { "EN","TH","VN","ID","PH","BR" }
 
 ---------------------------------------------------------------------
--- PANEL I18N สำหรับข้อความในลิสต์ด้านขวา
+-- PANEL I18N
 ---------------------------------------------------------------------
 local PANEL_I18N = {
     EN = {
@@ -651,9 +679,9 @@ local PANEL_I18N = {
 }
 
 ---------------------------------------------------------------------
--- LANGUAGE PANEL (Model A V2 – นอก UI หลัก)
+-- LANGUAGE PANEL (Model A V2)
 ---------------------------------------------------------------------
-local PANEL_WIDTH  = 230 -- ลดความกว้างให้ใกล้เส้นแดง
+local PANEL_WIDTH  = 230
 local PANEL_HEIGHT = 320
 local langPanelOpen = false
 local langPanel
@@ -663,7 +691,7 @@ langPanel = Instance.new("Frame")
 langPanel.Name = "LanguagePanel"
 langPanel.Parent = gui
 langPanel.AnchorPoint = Vector2.new(0, 0.5)
-langPanel.Position = UDim2.new(0.76, 0, 0.56, 0) -- ขยับลงเล็กน้อย + ใกล้ตัวหลัก
+langPanel.Position = UDim2.new(0.76, 0, 0.56, 0)
 langPanel.Size     = UDim2.new(0, 0, 0, PANEL_HEIGHT)
 langPanel.BackgroundColor3 = THEME.BLACK
 langPanel.BackgroundTransparency = 0.05
@@ -741,7 +769,7 @@ list:GetPropertyChangedSignal("CanvasPosition"):Connect(function()
 end)
 
 ---------------------------------------------------------------------
--- APPLY LANGUAGE (อัปเดตทั้ง UI หลัก + แพเนลขวา)
+-- LANGUAGE APPLY
 ---------------------------------------------------------------------
 local function updateLangHighlight()
     for code, info in pairs(langRows) do
@@ -785,7 +813,7 @@ local function applyLanguage(code)
 end
 
 ---------------------------------------------------------------------
--- สร้างแถวภาษา A V2
+-- สร้างแถวภาษา
 ---------------------------------------------------------------------
 local function createLangRow(code, order)
     local pack = LANG_PACK[code]
@@ -912,7 +940,6 @@ local function openLangPanel()
 
         if inside then return end
 
-        -- ไม่ปิดถ้ากดตรงปุ่มเกียร์
         local sp = settingsBtn.AbsolutePosition
         local ss = settingsBtn.AbsoluteSize
         local insideSettings =
@@ -936,22 +963,23 @@ settingsBtn.MouseButton1Click:Connect(function()
 end)
 
 ---------------------------------------------------------------------
--- VERIFY KEY LOGIC (ใช้ตอนกดปุ่ม Confirm)
+-- VERIFY KEY LOGIC
 ---------------------------------------------------------------------
 local function verifyKey(rawKey)
     rawKey = trim(rawKey or "")
     local pid = game.PlaceId
 
-    -- VIP override
-    if rawKey:sub(1, #KEY_CONFIG.VIP_PREFIX) == KEY_CONFIG.VIP_PREFIX then
-        markVerified(4, "VIP", rawKey)
-        return true, "VIP_OK"
+    -- VIP override (10 codes)
+    for _, code in ipairs(KEY_CONFIG.VIP_CODES or {}) do
+        if rawKey == code then
+            markVerified(4, "VIP", rawKey)
+            return true, "VIP_OK"
+        end
     end
 
     local mode = detectMapMode()
 
     if mode == 3 then
-        -- Free map, ไม่ต้องใช้คีย์
         markVerified(3, "FREE", rawKey)
         return true, "FREE"
     elseif mode == 2 then
@@ -963,21 +991,19 @@ local function verifyKey(rawKey)
             return false, "INVALID"
         end
     elseif mode == 1 then
-        -- Luarmor (โหมดทดสอบตอนนี้ให้ผ่านทุกคีย์, ไว้ต่อจริงภายหลัง)
+        -- Luarmor test-mode (ตอนนี้ให้ผ่านทุกคีย์)
         markVerified(1, "LUARMOR", rawKey)
         return true, "LUARMOR_OK"
     else
-        -- ยังไม่ได้เซ็ตระบบ key ให้แมพนี้
         return false, "UNKNOWN"
     end
 end
 
 ---------------------------------------------------------------------
--- BUTTON HANDLERS (Confirm + Link)  ใช้ระบบ Toast + i18n
+-- BUTTON HANDLERS (Confirm + Link)
 ---------------------------------------------------------------------
 confirmBtn.MouseButton1Click:Connect(function()
-    local langMap = MSG_I18N[currentLang] or MSG_I18N.EN
-    local pack    = LANG_PACK[currentLang] or LANG_PACK.EN
+    local pack = LANG_PACK[currentLang] or LANG_PACK.EN
     local baseConfirmText = pack.confirm or "Confirm Key"
 
     local raw = trim(keyBox.Text or "")
@@ -988,7 +1014,6 @@ confirmBtn.MouseButton1Click:Connect(function()
         return
     end
 
-    -- กำลังตรวจสอบ
     keyBox.TextColor3 = THEME.WHITE
     confirmBtn.Text   = baseConfirmText .. " ⏳"
     showToast("CHECKING")
@@ -1000,7 +1025,6 @@ confirmBtn.MouseButton1Click:Connect(function()
         confirmBtn.Text   = baseConfirmText .. " ✅"
         showToast(msgKey or "VALID")
 
-        -- ปิด UI หลังจากสำเร็จ (ให้ M ไปคุมระบบเองต่อ)
         task.delay(0.8, function()
             gui.Enabled = false
         end)
@@ -1012,9 +1036,20 @@ confirmBtn.MouseButton1Click:Connect(function()
 end)
 
 linkBtn.MouseButton1Click:Connect(function()
-    -- ตอนนี้แค่แจ้ง Toast ก่อน (เดี๋ยว M จะไปใส่ระบบเปิดลิงก์เอง)
+    local pid    = game.PlaceId
+    local linkCfg = KEY_CONFIG.KEY_LINK[pid]
+
+    if linkCfg then
+        if setclipboard then
+            pcall(setclipboard, linkCfg.url)
+        end
+        print(("[UFO HUB X] Key link for %s (%d): %s")
+            :format(linkCfg.name, pid, linkCfg.url))
+    else
+        print("[UFO HUB X] No key link configured for this map:", pid)
+    end
+
     showToast("LINK_OK")
-    print("[UFO HUB X] Get Key Link clicked (UI only)")
 end)
 
 ---------------------------------------------------------------------
@@ -1023,4 +1058,4 @@ end)
 applyLanguage("EN")
 updateLangHighlight()
 
-print("[UFO HUB X] Key UI + Language Panel A V2 + Key System loaded")
+print("[UFO HUB X] Key UI + Language Panel A V2 + Key System (VIP x10 + Links) loaded")
