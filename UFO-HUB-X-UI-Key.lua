@@ -1,9 +1,10 @@
---===== UFO HUB X • Key UI + Language Panel A V2 (Full i18n + Width 220 + Lowered) =====
+--===== UFO HUB X • Key UI + Language Panel A V2 + Key System (4 Mode + VIP + Save + Toast i18n) =====
 -- LocalScript (StarterGui / StarterPlayerScripts)
 
 local Players          = game:GetService("Players")
 local TweenService     = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
+local HttpService      = game:GetService("HttpService")
 local lp               = Players.LocalPlayer
 
 ---------------------------------------------------------------------
@@ -41,6 +42,284 @@ local function trim(s)
 end
 
 ---------------------------------------------------------------------
+-- KEY SYSTEM CONFIG (4 ระบบ + VIP)  + SAVE
+---------------------------------------------------------------------
+_G.UFOX_KEY_SYSTEM = _G.UFOX_KEY_SYSTEM or {
+    -- ระบบ 1: Luarmor (รองรับอนาคต)
+    LUARMOR_MAPS = {
+        [2753915549]       = true, -- Blox Fruit Sea 1
+        [4442272183]       = true, -- Blox Fruit Sea 2
+        [7449423635]       = true, -- Blox Fruit Sea 3
+        [126509999114328]  = true, -- 99 Nights in the Forest
+        [109983668079237]  = true, -- Steal a Brainrot
+        [127742093697776]  = true, -- Plants Vs Brainrots
+        [121864768012064]  = true, -- Fish It
+        [131716211654599]  = true, -- Fisch
+        [126884695634066]  = true, -- Grow a Garden
+    },
+
+    -- ระบบ 2: Custom Key (ถาวร)
+    CUSTOM_KEY = {
+        [82013336390273]   = "UFO-HUB X-Axe-Simulator!-max9999jkmax8888jkmax123", -- Axe Simulator!
+        [117784363858270]  = "UFO-HUB-X-Throw-a-basketball!-123m888m999m",        -- Throw a basketball!
+    },
+
+    -- ระบบ 3: Free (ไม่ต้องใส่ Key)
+    FREE_MAPS = {
+        [97777561575736]   = true, -- Kayak racing
+    },
+
+    -- ระบบ 4: VIP prefix (สร้างรหัสได้ไม่จำกัด)
+    VIP_PREFIX = "UFO-HUB-X-VIP-",
+}
+
+local KEY_CONFIG = _G.UFOX_KEY_SYSTEM
+
+-- SAVE CONFIG
+local SAVE_DIR  = "UFO HUB X"
+local SAVE_FILE = SAVE_DIR .. "/KeySystem.json"
+
+local KEY_STATE = { verified = {} }
+
+local function loadKeyState()
+    if not readfile then return end
+    local ok, raw = pcall(function() return readfile(SAVE_FILE) end)
+    if not ok or type(raw) ~= "string" or raw == "" then return end
+    local ok2, decoded = pcall(function() return HttpService:JSONDecode(raw) end)
+    if ok2 and type(decoded) == "table" then
+        return decoded
+    end
+end
+
+local function saveKeyState()
+    if not (writefile and makefolder) then return end
+    pcall(function() makefolder(SAVE_DIR) end)
+    local ok, data = pcall(function()
+        return HttpService:JSONEncode(KEY_STATE)
+    end)
+    if not ok then return end
+    pcall(function() writefile(SAVE_FILE, data) end)
+end
+
+local loaded = loadKeyState()
+if loaded then
+    KEY_STATE = loaded
+end
+_G.UFOX_KEY_STATE = KEY_STATE
+
+local function markVerified(mode, keyType, rawKey)
+    local pid = tostring(game.PlaceId)
+    KEY_STATE.verified = KEY_STATE.verified or {}
+    KEY_STATE.verified[pid] = {
+        mode    = mode,      -- 1/2/3/4
+        keyType = keyType,   -- "VIP","CUSTOM","FREE","LUARMOR","UNKNOWN"
+        key     = rawKey,
+        time    = os.time(),
+    }
+    saveKeyState()
+end
+
+local function detectMapMode()
+    local pid = game.PlaceId
+    if KEY_CONFIG.CUSTOM_KEY[pid] then
+        return 2
+    end
+    if KEY_CONFIG.FREE_MAPS[pid] then
+        return 3
+    end
+    if KEY_CONFIG.LUARMOR_MAPS[pid] then
+        return 1
+    end
+    return nil
+end
+
+local CURRENT_MODE = detectMapMode() or 0
+print("[UFO HUB X] Key System Mode for this map =", CURRENT_MODE, "(1=Luarmor, 2=Custom, 3=Free, 0=Unknown)")
+
+---------------------------------------------------------------------
+-- TOAST (แบบเดียวกับ UFO Toast, single-step) + i18n message
+---------------------------------------------------------------------
+local EDGE_RIGHT_PAD, EDGE_BOTTOM_PAD = 2, 2
+local TOAST_W, TOAST_H = 320, 86
+local RADIUS, STROKE_TH = 10, 2
+local GREEN = Color3.fromRGB(0,255,140)
+local BLACK = Color3.fromRGB(10,10,10)
+local LOGO_TOAST = "rbxassetid://83753985156201" -- โลโก้ Step2 เดิม
+
+local MSG_I18N = {
+    EN = {
+        CHECKING   = "Checking key... ⏳",
+        EMPTY      = "Please enter your key first. ⚠️",
+        INVALID    = "Invalid key. ❌",
+        VALID      = "Key confirmed. ✅",
+        VIP_OK     = "VIP key confirmed. 🌟",
+        FREE       = "This game does not require a key. ✅",
+        LUARMOR_OK = "Luarmor key (test mode) accepted. ✅",
+        UNKNOWN    = "This game is not configured in key system. ❌",
+        LINK_OK    = "Key link opened successfully. 🔗",
+    },
+    TH = {
+        CHECKING   = "กำลังตรวจสอบคีย์... ⏳",
+        EMPTY      = "กรุณาใส่คีย์ก่อนนะ ⚠️",
+        INVALID    = "คีย์ไม่ถูกต้อง ❌",
+        VALID      = "ยืนยันคีย์เรียบร้อย ✅",
+        VIP_OK     = "ยืนยันคีย์ VIP แล้ว 🌟",
+        FREE       = "แมพนี้ไม่ต้องใช้คีย์ ✅",
+        LUARMOR_OK = "คีย์ Luarmor (โหมดทดสอบ) ผ่านแล้ว ✅",
+        UNKNOWN    = "แมพนี้ยังไม่ได้ตั้งค่าระบบคีย์ ❌",
+        LINK_OK    = "กดลิงก์คีย์สำเร็จแล้ว 🔗",
+    },
+    VN = {
+        CHECKING   = "Đang kiểm tra key... ⏳",
+        EMPTY      = "Vui lòng nhập key trước. ⚠️",
+        INVALID    = "Key không hợp lệ. ❌",
+        VALID      = "Đã xác nhận key. ✅",
+        VIP_OK     = "Đã xác nhận key VIP. 🌟",
+        FREE       = "Map này không cần key. ✅",
+        LUARMOR_OK = "Key Luarmor (chế độ test) đã được chấp nhận. ✅",
+        UNKNOWN    = "Map này chưa được cấu hình hệ thống key. ❌",
+        LINK_OK    = "Đã mở link key thành công. 🔗",
+    },
+    ID = {
+        CHECKING   = "Memeriksa key... ⏳",
+        EMPTY      = "Silakan masukkan key dulu. ⚠️",
+        INVALID    = "Key tidak valid. ❌",
+        VALID      = "Key dikonfirmasi. ✅",
+        VIP_OK     = "Key VIP dikonfirmasi. 🌟",
+        FREE       = "Game ini tidak membutuhkan key. ✅",
+        LUARMOR_OK = "Key Luarmor (mode tes) diterima. ✅",
+        UNKNOWN    = "Game ini belum diatur sistem key. ❌",
+        LINK_OK    = "Link key berhasil dibuka. 🔗",
+    },
+    PH = {
+        CHECKING   = "Tine-check ang key... ⏳",
+        EMPTY      = "Pakilagay muna ng key. ⚠️",
+        INVALID    = "Maling key. ❌",
+        VALID      = "Na-kumpirma ang key. ✅",
+        VIP_OK     = "Na-kumpirma ang VIP key. 🌟",
+        FREE       = "Hindi kailangan ng key sa game na ito. ✅",
+        LUARMOR_OK = "Luarmor key (test mode) tinanggap. ✅",
+        UNKNOWN    = "Wala pang key system para sa game na ito. ❌",
+        LINK_OK    = "Matagumpay na na-open ang key link. 🔗",
+    },
+    BR = {
+        CHECKING   = "Verificando a key... ⏳",
+        EMPTY      = "Por favor, insira a key primeiro. ⚠️",
+        INVALID    = "Key inválida. ❌",
+        VALID      = "Key confirmada. ✅",
+        VIP_OK     = "Key VIP confirmada. 🌟",
+        FREE       = "Este jogo não precisa de key. ✅",
+        LUARMOR_OK = "Key Luarmor (modo teste) aceita. ✅",
+        UNKNOWN    = "Este jogo não está configurado no sistema de keys. ❌",
+        LINK_OK    = "Link da key aberto com sucesso. 🔗",
+    },
+}
+
+local currentLang = "EN" -- อันนี้จะถูกเปลี่ยนตามแผงภาษา
+
+local function makeToastGui(name)
+    local pg = lp:WaitForChild("PlayerGui")
+    local gui = Instance.new("ScreenGui")
+    gui.Name = name
+    gui.ResetOnSpawn = false
+    gui.IgnoreGuiInset = true
+    gui.DisplayOrder = 999999
+    gui.Parent = pg
+    return gui
+end
+
+local function buildToastBox(parent)
+    local box = Instance.new("Frame")
+    box.Name = "Toast"
+    box.AnchorPoint = Vector2.new(1,1)
+    box.Position = UDim2.new(1, -EDGE_RIGHT_PAD, 1, -(EDGE_BOTTOM_PAD - 24))
+    box.Size = UDim2.fromOffset(TOAST_W, TOAST_H)
+    box.BackgroundColor3 = BLACK
+    box.BorderSizePixel = 0
+    box.Parent = parent
+    corner(box, RADIUS)
+    local strokeUi = Instance.new("UIStroke")
+    strokeUi.Parent = box
+    strokeUi.Thickness = STROKE_TH
+    strokeUi.Color = GREEN
+    strokeUi.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+    strokeUi.LineJoinMode = Enum.LineJoinMode.Round
+    return box
+end
+
+local function buildToastTitle(box)
+    local title = Instance.new("TextLabel")
+    title.BackgroundTransparency = 1
+    title.Font = Enum.Font.GothamBold
+    title.RichText = true
+    title.Text = '<font color="#FFFFFF">UFO</font> <font color="#00FF8C">HUB X</font>'
+    title.TextSize = 18
+    title.TextColor3 = Color3.fromRGB(235,235,235)
+    title.TextXAlignment = Enum.TextXAlignment.Left
+    title.Position = UDim2.fromOffset(68, 12)
+    title.Size = UDim2.fromOffset(TOAST_W - 78, 20)
+    title.Parent = box
+    return title
+end
+
+local function buildToastMsg(box, text)
+    local msg = Instance.new("TextLabel")
+    msg.BackgroundTransparency = 1
+    msg.Font = Enum.Font.Gotham
+    msg.Text = text
+    msg.TextSize = 13
+    msg.TextColor3 = Color3.fromRGB(200,200,200)
+    msg.TextXAlignment = Enum.TextXAlignment.Left
+    msg.Position = UDim2.fromOffset(68, 34)
+    msg.Size = UDim2.fromOffset(TOAST_W - 78, 18)
+    msg.Parent = box
+    return msg
+end
+
+local function buildToastLogo(box)
+    local logo = Instance.new("ImageLabel")
+    logo.BackgroundTransparency = 1
+    logo.Image = LOGO_TOAST
+    logo.Size = UDim2.fromOffset(54, 54)
+    logo.AnchorPoint = Vector2.new(0, 0.5)
+    logo.Position = UDim2.new(0, 8, 0.5, -2)
+    logo.Parent = box
+    return logo
+end
+
+local function showToast(msgKey)
+    local langMap = MSG_I18N[currentLang] or MSG_I18N.EN
+    local text = langMap[msgKey] or MSG_I18N.EN[msgKey] or ("[" .. tostring(msgKey) .. "]")
+    local guiName = "UFO_Toast_Key_" .. tostring(math.random(1000,9999))
+
+    local gui = makeToastGui(guiName)
+    local box = buildToastBox(gui)
+    buildToastLogo(box)
+    buildToastTitle(box)
+    buildToastMsg(box, text)
+
+    local tweenIn = TweenService:Create(
+        box,
+        TweenInfo.new(0.22, Enum.EasingStyle.Quart, Enum.EasingDirection.Out),
+        {Position = UDim2.new(1, -EDGE_RIGHT_PAD, 1, -EDGE_BOTTOM_PAD)}
+    )
+    tweenIn:Play()
+    tweenIn.Completed:Wait()
+
+    task.delay(1.2, function()
+        if not box or not box.Parent then return end
+        local tweenOut = TweenService:Create(
+            box,
+            TweenInfo.new(0.32, Enum.EasingStyle.Quint, Enum.EasingDirection.InOut),
+            {Position = UDim2.new(1, -EDGE_RIGHT_PAD, 1, -(EDGE_BOTTOM_PAD - 24))}
+        )
+        tweenOut:Play()
+        tweenOut.Completed:Wait()
+        if gui then gui:Destroy() end
+    end)
+end
+
+---------------------------------------------------------------------
 -- ROOT GUI
 ---------------------------------------------------------------------
 local playerGui = lp:WaitForChild("PlayerGui")
@@ -53,18 +332,17 @@ gui.ZIndexBehavior = Enum.ZIndexBehavior.Global
 gui.Parent = playerGui
 
 ---------------------------------------------------------------------
--- MAIN PANEL (BACKGROUND)  >> ดีไซน์เดิมแต่เลื่อนลงนิดหน่อย
+-- MAIN PANEL (BACKGROUND)  >> ดีไซน์เดิม แต่เลื่อนลงนิดหน่อย
 ---------------------------------------------------------------------
 local main = Instance.new("Frame")
 main.Name = "Main"
 main.Parent = gui
 main.AnchorPoint = Vector2.new(0.5, 0.5)
-main.Position = UDim2.new(0.5, 0, 0.53, 0)  -- เลื่อนลงจาก 0.5 → 0.53
+main.Position = UDim2.new(0.5, 0, 0.52, 0) -- เลื่อนลงเล็กน้อย
 main.Size = UDim2.new(0.62, 0, 0.60, 0)
 main.BackgroundColor3 = THEME.DARK_BG
 main.BorderSizePixel = 0
 corner(main, 18)
-
 stroke(main, 3, THEME.GREEN_DARK, 0.05)
 
 local inner = Instance.new("Frame")
@@ -183,7 +461,7 @@ subTitle.TextXAlignment = Enum.TextXAlignment.Center
 subTitle.Text = '<font color="#FFD700">Key</font> 🔑'
 
 ---------------------------------------------------------------------
--- KEY BOX + BUTTONS (ยืดด้านล่างให้สูงขึ้นหน่อย)
+-- KEY BOX + BUTTONS
 ---------------------------------------------------------------------
 local keyBox = Instance.new("TextBox")
 keyBox.Name = "KeyBox"
@@ -303,7 +581,7 @@ local LANG_PACK = {
     },
 }
 
--- EN ก่อน, TH ที่สอง
+-- ลำดับในลิสต์: EN ก่อน, TH ที่สอง
 local LANG_ORDER = { "EN","TH","VN","ID","PH","BR" }
 
 ---------------------------------------------------------------------
@@ -375,18 +653,17 @@ local PANEL_I18N = {
 ---------------------------------------------------------------------
 -- LANGUAGE PANEL (Model A V2 – นอก UI หลัก)
 ---------------------------------------------------------------------
-local PANEL_WIDTH  = 220           -- ความกว้างใหม่ ให้ไม่เกินเส้นแดง
+local PANEL_WIDTH  = 230 -- ลดความกว้างให้ใกล้เส้นแดง
 local PANEL_HEIGHT = 320
 local langPanelOpen = false
 local langPanel
 local langRows = {}
-local langInputConn
 
 langPanel = Instance.new("Frame")
 langPanel.Name = "LanguagePanel"
 langPanel.Parent = gui
 langPanel.AnchorPoint = Vector2.new(0, 0.5)
-langPanel.Position = UDim2.new(0.80, 0, 0.55, 0)  -- เลื่อนลงจาก 0.5 → 0.55
+langPanel.Position = UDim2.new(0.76, 0, 0.56, 0) -- ขยับลงเล็กน้อย + ใกล้ตัวหลัก
 langPanel.Size     = UDim2.new(0, 0, 0, PANEL_HEIGHT)
 langPanel.BackgroundColor3 = THEME.BLACK
 langPanel.BackgroundTransparency = 0.05
@@ -404,11 +681,11 @@ body.Position = UDim2.new(0, 5, 0, 5)
 
 local titleLang = Instance.new("TextLabel")
 titleLang.Parent = body
-titleLang.Size = UDim2.new(1, -8, 0, 24)
+titleLang.Size = UDim2.new(1, -8, 0, 26)
 titleLang.Position = UDim2.new(0, 4, 0, 0)
 titleLang.BackgroundTransparency = 1
 titleLang.Font = Enum.Font.GothamBold
-titleLang.TextSize = 16
+titleLang.TextSize = 18
 titleLang.TextColor3 = THEME.WHITE
 titleLang.TextXAlignment = Enum.TextXAlignment.Left
 titleLang.Text = "Language"
@@ -419,13 +696,13 @@ searchBox.Parent = body
 searchBox.BackgroundColor3 = THEME.BLACK
 searchBox.ClearTextOnFocus = false
 searchBox.Font = Enum.Font.GothamBold
-searchBox.TextSize = 14
+searchBox.TextSize = 16
 searchBox.TextColor3 = THEME.WHITE
 searchBox.PlaceholderText = "🔍 Search Language"
 searchBox.TextXAlignment = Enum.TextXAlignment.Center
 searchBox.Text = ""
-searchBox.Size = UDim2.new(1, -8, 0, 30)
-searchBox.Position = UDim2.new(0, 4, 0, 26)
+searchBox.Size = UDim2.new(1, -8, 0, 32)
+searchBox.Position = UDim2.new(0, 4, 0, 30)
 corner(searchBox, 10)
 local sbStroke = stroke(searchBox, 1.8, THEME.GREEN_DARK, 0.3)
 
@@ -434,8 +711,8 @@ list.Parent = body
 list.BackgroundColor3 = THEME.BLACK
 list.BorderSizePixel = 0
 list.ScrollBarThickness = 0
-list.Position = UDim2.new(0, 4, 0, 26 + 30 + 8)
-list.Size = UDim2.new(1, -8, 1, -(26 + 30 + 12))
+list.Position = UDim2.new(0, 4, 0, 30 + 32 + 8)
+list.Size = UDim2.new(1, -8, 1, -(30 + 32 + 12))
 list.AutomaticCanvasSize = Enum.AutomaticSize.Y
 list.ScrollingDirection = Enum.ScrollingDirection.Y
 list.ClipsDescendants = true
@@ -466,36 +743,6 @@ end)
 ---------------------------------------------------------------------
 -- APPLY LANGUAGE (อัปเดตทั้ง UI หลัก + แพเนลขวา)
 ---------------------------------------------------------------------
-local currentLang = "EN"
-
-local function applyLanguage(code)
-    local pack = LANG_PACK[code]
-    if not pack then return end
-    currentLang = code
-
-    -- UI หลัก
-    keyBox.PlaceholderText = pack.placeholder
-    confirmBtn.Text        = pack.confirm
-    linkBtn.Text           = pack.link
-
-    -- Panel ขวา
-    local pmap = PANEL_I18N[code] or PANEL_I18N.EN
-    titleLang.Text = pmap.TITLE or pack.langTitle or "Language"
-    searchBox.PlaceholderText = pmap.SEARCH or pack.searchHint or "🔍 Search Language"
-
-    for _, langCode in ipairs(LANG_ORDER) do
-        local row = langRows[langCode]
-        if row then
-            row.btn.Text = pmap[langCode] or (LANG_PACK[langCode] and LANG_PACK[langCode].name) or langCode
-        end
-    end
-
-    print("[UFO HUB X] Language ->", pack.name)
-end
-
----------------------------------------------------------------------
--- สร้างแถว A V2 ในลิสต์ภาษา
----------------------------------------------------------------------
 local function updateLangHighlight()
     for code, info in pairs(langRows) do
         local on = (code == currentLang)
@@ -513,6 +760,33 @@ local function updateLangHighlight()
     end
 end
 
+local function applyLanguage(code)
+    local pack = LANG_PACK[code]
+    if not pack then return end
+    currentLang = code
+
+    keyBox.PlaceholderText = pack.placeholder
+    confirmBtn.Text        = pack.confirm
+    linkBtn.Text           = pack.link
+    keyBox.TextColor3      = THEME.WHITE
+
+    local pmap = PANEL_I18N[code] or PANEL_I18N.EN
+    titleLang.Text = pmap.TITLE or pack.langTitle or "Language"
+    searchBox.PlaceholderText = pmap.SEARCH or pack.searchHint or "🔍 Search Language"
+
+    for _, langCode in ipairs(LANG_ORDER) do
+        local row = langRows[langCode]
+        if row then
+            row.btn.Text = pmap[langCode] or (LANG_PACK[langCode] and LANG_PACK[langCode].name) or langCode
+        end
+    end
+
+    updateLangHighlight()
+end
+
+---------------------------------------------------------------------
+-- สร้างแถวภาษา A V2
+---------------------------------------------------------------------
 local function createLangRow(code, order)
     local pack = LANG_PACK[code]
     if not pack then return end
@@ -520,12 +794,12 @@ local function createLangRow(code, order)
     local btn = Instance.new("TextButton")
     btn.Name = "Lang_" .. code
     btn.Parent = list
-    btn.Size = UDim2.new(1, 0, 0, 30)
+    btn.Size = UDim2.new(1, 0, 0, 34)
     btn.BackgroundColor3 = THEME.BLACK
     btn.BorderSizePixel = 0
     btn.AutoButtonColor = false
     btn.Font = Enum.Font.GothamBold
-    btn.TextSize = 14
+    btn.TextSize = 16
     btn.TextColor3 = THEME.WHITE
     btn.TextXAlignment = Enum.TextXAlignment.Center
     btn.TextYAlignment = Enum.TextYAlignment.Center
@@ -552,7 +826,6 @@ local function createLangRow(code, order)
 
     btn.MouseButton1Click:Connect(function()
         applyLanguage(code)
-        updateLangHighlight()
     end)
 end
 
@@ -563,7 +836,7 @@ end
 ---------------------------------------------------------------------
 -- SEARCH FILTER
 ---------------------------------------------------------------------
-local function applySearch()
+local function applySearchLang()
     local q = string.lower(trim(searchBox.Text or ""))
     for code, info in pairs(langRows) do
         local txt = string.lower(info.btn.Text or "")
@@ -573,7 +846,7 @@ local function applySearch()
     list.CanvasPosition = Vector2.new(0, 0)
 end
 
-searchBox:GetPropertyChangedSignal("Text"):Connect(applySearch)
+searchBox:GetPropertyChangedSignal("Text"):Connect(applySearchLang)
 
 searchBox.Focused:Connect(function()
     sbStroke.Color = THEME.GREEN
@@ -663,9 +936,91 @@ settingsBtn.MouseButton1Click:Connect(function()
 end)
 
 ---------------------------------------------------------------------
--- INITIAL LANGUAGE (เริ่มต้น English)
+-- VERIFY KEY LOGIC (ใช้ตอนกดปุ่ม Confirm)
+---------------------------------------------------------------------
+local function verifyKey(rawKey)
+    rawKey = trim(rawKey or "")
+    local pid = game.PlaceId
+
+    -- VIP override
+    if rawKey:sub(1, #KEY_CONFIG.VIP_PREFIX) == KEY_CONFIG.VIP_PREFIX then
+        markVerified(4, "VIP", rawKey)
+        return true, "VIP_OK"
+    end
+
+    local mode = detectMapMode()
+
+    if mode == 3 then
+        -- Free map, ไม่ต้องใช้คีย์
+        markVerified(3, "FREE", rawKey)
+        return true, "FREE"
+    elseif mode == 2 then
+        local expected = KEY_CONFIG.CUSTOM_KEY[pid]
+        if rawKey == expected then
+            markVerified(2, "CUSTOM", rawKey)
+            return true, "VALID"
+        else
+            return false, "INVALID"
+        end
+    elseif mode == 1 then
+        -- Luarmor (โหมดทดสอบตอนนี้ให้ผ่านทุกคีย์, ไว้ต่อจริงภายหลัง)
+        markVerified(1, "LUARMOR", rawKey)
+        return true, "LUARMOR_OK"
+    else
+        -- ยังไม่ได้เซ็ตระบบ key ให้แมพนี้
+        return false, "UNKNOWN"
+    end
+end
+
+---------------------------------------------------------------------
+-- BUTTON HANDLERS (Confirm + Link)  ใช้ระบบ Toast + i18n
+---------------------------------------------------------------------
+confirmBtn.MouseButton1Click:Connect(function()
+    local langMap = MSG_I18N[currentLang] or MSG_I18N.EN
+    local pack    = LANG_PACK[currentLang] or LANG_PACK.EN
+    local baseConfirmText = pack.confirm or "Confirm Key"
+
+    local raw = trim(keyBox.Text or "")
+    if raw == "" then
+        keyBox.TextColor3 = THEME.RED
+        confirmBtn.Text   = baseConfirmText .. " ❌"
+        showToast("EMPTY")
+        return
+    end
+
+    -- กำลังตรวจสอบ
+    keyBox.TextColor3 = THEME.WHITE
+    confirmBtn.Text   = baseConfirmText .. " ⏳"
+    showToast("CHECKING")
+
+    local ok, msgKey = verifyKey(raw)
+
+    if ok then
+        keyBox.TextColor3 = THEME.GREEN
+        confirmBtn.Text   = baseConfirmText .. " ✅"
+        showToast(msgKey or "VALID")
+
+        -- ปิด UI หลังจากสำเร็จ (ให้ M ไปคุมระบบเองต่อ)
+        task.delay(0.8, function()
+            gui.Enabled = false
+        end)
+    else
+        keyBox.TextColor3 = THEME.RED
+        confirmBtn.Text   = baseConfirmText .. " ❌"
+        showToast(msgKey or "INVALID")
+    end
+end)
+
+linkBtn.MouseButton1Click:Connect(function()
+    -- ตอนนี้แค่แจ้ง Toast ก่อน (เดี๋ยว M จะไปใส่ระบบเปิดลิงก์เอง)
+    showToast("LINK_OK")
+    print("[UFO HUB X] Get Key Link clicked (UI only)")
+end)
+
+---------------------------------------------------------------------
+-- INITIAL LANGUAGE (default EN)
 ---------------------------------------------------------------------
 applyLanguage("EN")
 updateLangHighlight()
 
-print("[UFO HUB X] Key UI + Language Panel A V2 (i18n, width 220, lowered) loaded")
+print("[UFO HUB X] Key UI + Language Panel A V2 + Key System loaded")
